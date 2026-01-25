@@ -1,0 +1,11 @@
+{
+  "optimal_threshold": 0.47457894682884216,
+  "test_metrics": {
+    "accuracy": 0.6824824782132753,
+    "roc_auc": 0.8062635206035799,
+    "sensitivity": 0.8204732179247738,
+    "specificity": 0.6550797241285271
+  },
+  "n_samples": 1406820,
+  "n_test": 281364
+}

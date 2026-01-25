@@ -1,8 +1,6 @@
 .venv/
 data/raw/
-data/processed/
 outputs/
-models/
 __pycache__/
 .idea/
 data/
