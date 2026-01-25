@@ -659,9 +659,9 @@ def main():
             display_df["Resistance"] = display_df["prob_resistant"].apply(lambda x: format_probability(x))
             
             # Rename and reorder columns
-            display_df = display_df[["antibiotic", "Effectiveness", "Resistance"]]
+            display_df = display_df[["antibiotic", "Effectiveness", "Resistance"]].copy()
             display_df.columns = ["Antibiotic", "Effectiveness", "Resistance"]
-            display_df.index = range(1, len(display_df) + 1)
+            display_df.index = pd.Index(range(1, len(display_df) + 1))
             
             st.dataframe(display_df, use_container_width=True)
         else:

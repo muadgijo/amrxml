@@ -8,7 +8,7 @@ Machine learning model to predict antimicrobial resistance (AMR) using XGBoost. 
 
 ##  Live Demo
 
-**Try it now:** [https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/](https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/)
+**Try it now:** [https://amrxml.streamlit.app/](https://amrxml.streamlit.app/)
 
 Select an organism and antibiotic to predict resistance probability and see recommended treatment options.
 
