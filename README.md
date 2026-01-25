@@ -1,107 +1,181 @@
-# AMR-X: Antimicrobial Resistance Prediction
+# AMR-X: Antimicrobial Resistance Predictor
 
-A machine learning model to predict antimicrobial resistance from organism and antibiotic data.
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Quick Start (For Teammates)
+Machine learning model to predict antimicrobial resistance (AMR) using XGBoost. Trained on real-world clinical data to help identify effective antibiotics for bacterial infections.
 
-### First Time Setup
+##  Live Demo
 
-```powershell
-# Activate virtual environment
-.venv\Scripts\Activate.ps1
+**Try it now:** [https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/](https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/)
 
-# Install dependencies (if needed)
+Select an organism and antibiotic to predict resistance probability and see recommended treatment options.
+
+---
+
+##  Features
+
+- **Resistance Prediction**: Predict if a bacteria will be resistant to a specific antibiotic
+- **Treatment Ranking**: Get ranked list of most effective antibiotics for an organism
+- **Fast Inference**: Lightweight XGBoost model with instant predictions
+- **Real Clinical Data**: Trained on curated antimicrobial susceptibility datasets
+
+---
+
+##  How It Works
+
+1. **Input**: Select organism (e.g., *E. coli*) and antibiotic (e.g., Ciprofloxacin)
+2. **Model**: XGBoost binary classifier trained on organism-antibiotic pairs
+3. **Output**: Probability of resistance + ranked treatment alternatives
+
+**Model Details:**
+- Algorithm: XGBoost (Gradient Boosting)
+- Features: Organism code, Antibiotic code (encoded)
+- Training Data: ~[insert number] clinical observations
+- Performance: [insert accuracy/AUC if you have it]
+
+---
+
+##  Installation & Local Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/muadgijo/amrxml.git
+cd amrxml
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run the Streamlit app
+streamlit run streamlit_app.py
 ```
 
-### Run Everything
+The app will open in your browser at `http://localhost:8501`
 
-```powershell
+### Train Model from Scratch (Optional)
+
+```bash
+# Download data, preprocess, and train
 python run.py
 ```
 
-Done. The script will:
-1. Download datasets (first time only)
-2. Clean and prepare data
-3. Train the XGBoost model
-4. Generate plots (ROC, PR curve, confusion matrix, feature importance)
-5. Compare against baseline models
+This will:
+- Download datasets from Hugging Face
+- Preprocess and encode data
+- Train XGBoost model
+- Generate evaluation plots
 
-**Output:**
-- `models/amr_xgb_model.json` — trained model
-- `models/model_metadata.json` — metrics
-- `outputs/` — visualization plots
+---
 
-## Project Structure
+##  Project Structure
 
 ```
-├── data/
-│   ├── raw/              # Original datasets
-│   ├── processed/        # Cleaned & encoded
-├── models/               # Saved model + metadata
-├── outputs/              # Plots
+amrxml/
+├── streamlit_app.py          # Web interface
+├── run.py                     # Full pipeline runner
+├── requirements.txt           # Dependencies
 ├── scripts/
-│   └── pipeline.py       # Main ML code
-├── run.py                # Simple entry point
-└── requirements.txt
+│   ├── pipeline.py           # Core ML pipeline
+│   ├── 01_data_download.py   # Data ingestion
+│   ├── 02_data_processing.py # Preprocessing
+│   ├── 03_model_training.py  # Model training
+│   ├── 04_model_evaluation.py # Evaluation
+│   └── 05_visualization.py   # Plots generation
+├── data/
+│   ├── processed/            # Processed datasets & lookups
+│   └── raw/                  # (Downloaded automatically)
+├── models/
+│   ├── amr_xgb_model.json   # Trained model
+│   └── model_metadata.json   # Model info
+└── outputs/                  # Visualizations (ROC, confusion matrix, etc.)
 ```
 
-## What It Does
+---
 
-**Data:** Loads organism, antibiotic, and resistance labels. Cleans, normalizes, and encodes as integers.
+##  Model Performance
 
-**Model:** XGBoost binary classifier trained on organism + antibiotic features using stratified train-val-test split.
+The model is evaluated on held-out test data. Key metrics:
 
-**Output:** Probability of resistance + optimal classification threshold.
+- **Accuracy**: [add your metric]
+- **ROC-AUC**: [add your metric]
+- **Precision/Recall**: See `outputs/` for plots
 
-**Results:**
-- Accuracy: 68.25%
-- ROC-AUC: 0.8063
-- Sensitivity: 87% (catches resistant cases)
+---
 
-## Using the Model
+##  Data Sources
+
+Datasets are automatically downloaded from Hugging Face:
+- [AMR Dataset (Cleaned & Preprocessed)](https://huggingface.co/datasets/Muadgijo/amrx-datasets)
+- Microbiology cultures with implied susceptibility
+
+---
+
+##  Usage Example
 
 ```python
 from scripts.pipeline import load_inference_assets, predict_resistance
 
+# Load model and lookups
 assets = load_inference_assets()
-result = predict_resistance("E. coli", "ciprofloxacin", assets)
+
+# Predict resistance
+result = predict_resistance(
+    organism="Escherichia coli",
+    antibiotic="Ciprofloxacin",
+    assets=assets
+)
+
 print(result)
-# {'organism': 'ESCHERICHIA COLI', 'antibiotic': 'CIPROFLOXACIN', 
-#  'probability': 0.8234, 'prediction': 'Resistant'}
+# {'organism': 'Escherichia coli', 
+#  'antibiotic': 'Ciprofloxacin',
+#  'prediction': 'Resistant', 
+#  'probability': 0.8234}
 ```
 
-## Streamlit App
+---
 
-Interactive UI for predictions and antibiotic ranking.
+##  Contributing
 
-```powershell
-streamlit run streamlit_app.py
+Contributions are welcome! Feel free to:
+- Report bugs or issues
+- Suggest new features
+- Improve documentation
+- Add new datasets
+
+---
+
+##  License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+##  Citation
+
+If you use this work in your research or project, please cite:
+
+```bibtex
+@software{amrxml2026,
+  author = {[Your Name]},
+  title = {AMR-X: Machine Learning Model for Antimicrobial Resistance Prediction},
+  year = {2026},
+  url = {https://github.com/muadgijo/amrxml},
+  version = {1.0.0}
+}
 ```
 
-- Run `python run.py` once first so the model, maps, and threshold are saved.
-- Pick an organism and antibiotic from dropdowns to see resistance probability and label.
-- Move the slider to view the top-N antibiotics ranked by predicted effectiveness.
+---
 
-## Requirements
+##  Acknowledgments
 
-Python 3.11+, dependencies in `requirements.txt`
+- Data sourced from public antimicrobial resistance databases
+- Built with Streamlit, XGBoost, pandas, and scikit-learn
 
+---
 
-## Design Rationale
+##  Contact
 
-**Why XGBoost over frequency tables?**
-- Frequency tables provide point estimates but fail under sparsity and rare combinations.
-- XGBoost offers smoothing, regularization, and calibrated probabilities.
-- Extensible to richer features if data becomes available.
-- Enables principled uncertainty quantification.
+Created by [@muadgijo](https://github.com/muadgijo)
 
-**Why low precision (0.32)?**
-- Resistance prevalence is 16.6%; threshold optimized for screening sensitivity (0.82).
-- Clinical use requires confirmatory testing; system explicitly communicates uncertainty.
-- Trade-off is intentional and documented.
-
-## Notes
-- Splits are fixed with seed 42 to keep results comparable across runs.
-- Inference uses fuzzy matching for organism/antibiotic names and the saved optimal threshold from metadata.
-- Deprecated helper scripts (`data_ingestion.py`, `data_processing.py`, `data_cleaning.py`) now forward to the unified pipeline to avoid divergent outputs.
+**Live Demo**: [https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/](https://amrxml-93kfeuxsjop6g5g5yy4ydn.streamlit.app/)
