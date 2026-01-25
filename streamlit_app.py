@@ -8,7 +8,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st  # type: ignore[import-not-found]
 
-from scripts.pipeline import load_inference_assets, predict_resistance, rank_antibiotics
+from scripts.pipeline import (
+    load_inference_assets,
+    predict_resistance,
+    rank_antibiotics,
+    load_spectrum_rules,
+)
 
 # Page configuration
 st.set_page_config(
@@ -21,105 +26,19 @@ st.set_page_config(
 # Custom CSS for medical-themed styling
 st.markdown("""
 <style>
-    /* Main theme colors */
-    .main {
-        background-color: #f8f9fa;
+    /* Minimal, accessible palette */
+    :root {
+        --primary: #0D6EFD; /* blue */
+        --success: #198754; /* green */
+        --warning: #FFC107; /* amber */
+        --danger:  #DC3545; /* red */
     }
-    
-    /* Metric cards */
-    div[data-testid="metric-container"] {
-        background-color: white;
-        border: 1px solid #e0e0e0;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    /* Headers */
-    h1 {
-        color: #1e3a8a;
-        font-weight: 700;
-    }
-    
-    h2 {
-        color: #2563eb;
-        font-weight: 600;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 10px;
-    }
-    
-    h3 {
-        color: #3b82f6;
-        font-weight: 600;
-    }
-    
-    /* Buttons */
-    .stButton>button {
-        background-color: #2563eb;
-        color: white;
-        font-weight: 600;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-        border: none;
-    }
-    
-    .stButton>button:hover {
-        background-color: #1e40af;
-    }
-    
-    /* Warning/Info boxes */
-    .disclaimer-box {
-        background-color: #fef3c7;
-        border-left: 4px solid #f59e0b;
-        padding: 15px;
-        border-radius: 4px;
-        margin: 10px 0;
-    }
-    
-    .info-box {
-        background-color: #dbeafe;
-        border-left: 4px solid #2563eb;
-        padding: 15px;
-        border-radius: 4px;
-        margin: 10px 0;
-    }
-    
-    /* Status indicators */
-    .status-resistant {
-        color: #dc2626;
-        font-weight: 700;
-    }
-    
-    .status-susceptible {
-        color: #16a34a;
-        font-weight: 700;
-    }
-    
-    .status-intermediate {
-        color: #ea580c;
-        font-weight: 700;
-    }
-    
-    /* Data tables */
-    .dataframe {
-        font-size: 14px;
-    }
-    
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        padding: 10px 20px;
-        background-color: white;
-        border-radius: 4px 4px 0 0;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: #2563eb;
-        color: white;
-    }
+    /* Let Streamlit manage text colors for light/dark themes */
+    .stButton>button { background: var(--primary); color: #fff; border-radius: 6px; border: none; }
+    .stButton>button:hover { filter: brightness(0.95); }
+    .disclaimer-box { background: #FFF3CD; border-left: 4px solid #FF9800; padding: 12px; border-radius: 4px; color: #333; }
+    .status-resistant { color: var(--danger); font-weight: 600; }
+    .status-susceptible { color: var(--success); font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -180,11 +99,8 @@ def render_disclaimer():
     """Render medical disclaimer banner."""
     st.markdown("""
     <div class="disclaimer-box">
-        <h4>⚠️ Medical Disclaimer</h4>
-        <p><strong>IMPORTANT:</strong> This tool is for <strong>educational and research purposes only</strong>. 
-        It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult 
-        with qualified healthcare providers for clinical decisions. Antibiotic selection must consider 
-        patient factors, local resistance patterns, and clinical guidelines.</p>
+        <strong>⚠️ Medical Disclaimer</strong>
+        <p>This tool is for educational and research use only and does not replace professional medical advice or clinical judgment.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -192,61 +108,62 @@ def render_disclaimer():
 def render_sidebar():
     """Render sidebar with navigation and info."""
     with st.sidebar:
-        st.title("🔬 AMR-X")
+        st.title("AMR-X")
         st.caption("Antimicrobial Resistance Predictor")
-        
+
         st.markdown("---")
-        st.subheader("ℹ️ About")
-        
+        st.subheader("About")
+
         # Load metadata for dynamic stats
         metadata = load_model_metadata()
-        
+
         if metadata:
             test_metrics = metadata.get("test_metrics", {})
             n_samples = metadata.get("n_samples", 0)
             accuracy = test_metrics.get("accuracy", 0) * 100
-            roc_auc = test_metrics.get("roc_auc", 0)
-            
-            st.info(f"""
-            **AMR-X** uses machine learning to predict antimicrobial resistance patterns and recommend effective treatment options.
-            
-            - 🧬 **XGBoost Model**
-            - 📊 **{n_samples:,}+ Training Samples**
-            - 🎯 **{accuracy:.1f}% Accuracy**
-            - ⚡ **Instant Predictions**
-            """)
+            st.markdown(
+                f"""
+                **AMR-X** predicts antimicrobial resistance and ranks treatment options.
+
+                - Model: XGBoost
+                - Training Samples: **{n_samples:,}+**
+                - Accuracy: **{accuracy:.1f}%**
+                """
+            )
         else:
-            st.info("""
-            **AMR-X** uses machine learning to predict antimicrobial resistance patterns and recommend effective treatment options.
-            
-            - 🧬 **XGBoost Model**
-            - 📊 **Machine Learning Powered**
-            - 🎯 **Research Grade**
-            - ⚡ **Instant Predictions**
-            """)
-        
+            st.markdown(
+                """
+                **AMR-X** predicts antimicrobial resistance and ranks treatment options.
+
+                - Model: XGBoost
+                - Research-grade, inference-only
+                """
+            )
+
         st.markdown("---")
-        st.subheader("🔗 Resources")
-        st.markdown("""
-        - [WHO AMR Resources](https://www.who.int/health-topics/antimicrobial-resistance)
-        - [CDC AMR Info](https://www.cdc.gov/drugresistance/)
-        - [GitHub Repository](https://github.com/muadgijo/amrxml)
-        """)
-        
+        st.subheader("Resources")
+        st.markdown(
+            """
+            - [WHO AMR Resources](https://www.who.int/health-topics/antimicrobial-resistance)
+            - [CDC AMR Info](https://www.cdc.gov/drugresistance/)
+            - [GitHub Repository](https://github.com/muadgijo/amrxml)
+            """
+        )
+
         st.markdown("---")
-        st.caption("© 2026 AMR-X | MIT License")
+        st.caption("© 2026 AMR-X · MIT License")
 
 
 def render_analytics_tab(metadata):
     """Render analytics and model performance tab."""
-    st.header("📊 Model Analytics & Performance")
+    st.header("Model Analytics & Performance")
     
     if metadata is None:
         st.warning("Model metadata not available. Analytics cannot be displayed.")
         return
     
     # Model Performance Metrics
-    st.subheader("🎯 Model Performance Metrics")
+    st.subheader("Model Performance Metrics")
     
     test_metrics = metadata.get("test_metrics", {})
     col1, col2, col3, col4 = st.columns(4)
@@ -269,7 +186,7 @@ def render_analytics_tab(metadata):
     
     # Dataset Statistics
     st.markdown("---")
-    st.subheader("📈 Dataset Statistics")
+    st.subheader("Dataset Statistics")
     
     col1, col2, col3 = st.columns(3)
     
@@ -287,7 +204,7 @@ def render_analytics_tab(metadata):
     
     # Model Information
     st.markdown("---")
-    st.subheader("🔧 Model Architecture")
+    st.subheader("Model Architecture")
     
     col1, col2 = st.columns(2)
     
@@ -315,7 +232,7 @@ def render_analytics_tab(metadata):
     
     # Visualizations (if available)
     st.markdown("---")
-    st.subheader("📉 Performance Visualizations")
+    st.subheader("Performance Visualizations")
     
     viz_col1, viz_col2 = st.columns(2)
     
@@ -335,7 +252,7 @@ def render_analytics_tab(metadata):
             st.info("Confusion matrix visualization not available")
     
     # Interpretation Guide
-    with st.expander("📖 How to Interpret These Metrics"):
+    with st.expander("How to interpret these metrics"):
         st.markdown("""
         **Accuracy**: Percentage of correct predictions (both resistant and susceptible).
         
@@ -564,10 +481,11 @@ def main():
     render_sidebar()
     
     # Main header
-    st.title("🔬 AMR-X: Antimicrobial Resistance Predictor")
-    st.markdown("**Predict resistance, discover effective treatments, explore insights**")
+    st.title("AMR-X: Antimicrobial Resistance Predictor")
+    st.caption("Predict resistance and review treatment rankings.")
     
     # Disclaimer banner
+    # Concise disclaimer
     render_disclaimer()
     
     # Load assets
@@ -595,14 +513,14 @@ def main():
         st.stop()
     
     # Create tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Prediction", "📊 Analytics", "🩺 Insights", "ℹ️ About"])
+    tab1, tab2 = st.tabs(["Prediction", "Analytics"])
     
     # Tab 1: Prediction
     with tab1:
         st.header("Resistance Prediction & Treatment Rankings")
         
         # Prediction form
-        st.subheader("🧪 Test Resistance")
+        st.subheader("Test Resistance")
         
         col1, col2 = st.columns(2)
         
@@ -622,7 +540,7 @@ def main():
         
         col1, col2 = st.columns([1, 3])
         with col1:
-            predict_btn = st.button("🔍 Predict Resistance", type="primary", use_container_width=True)
+            predict_btn = st.button("Predict Resistance", type="primary", use_container_width=True)
         
         # Prediction results
         if predict_btn:
@@ -636,7 +554,7 @@ def main():
                 pred = result.get("prediction", "Unknown")
                 
                 st.markdown("---")
-                st.subheader("🎯 Prediction Results")
+                st.subheader("Prediction Results")
                 
                 # Display prediction with color coding
                 col1, col2, col3 = st.columns(3)
@@ -648,10 +566,7 @@ def main():
                     st.metric("Antibiotic", antibiotic)
                 
                 with col3:
-                    if pred == "Resistant":
-                        st.markdown(f'<p class="status-resistant">🔴 {pred}</p>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<p class="status-susceptible">🟢 {pred}</p>', unsafe_allow_html=True)
+                    st.metric("Prediction", pred)
                 
                 # Probability and confidence
                 st.markdown("---")
@@ -675,16 +590,7 @@ def main():
                 
                 # Risk stratification
                 st.markdown("---")
-                st.subheader("📊 Risk Assessment")
-                
-                risk_level, risk_emoji, risk_desc = get_risk_level(prob)
-                
-                st.markdown(f"""
-                <div class="info-box">
-                    <h4>{risk_emoji} {risk_level}</h4>
-                    <p>{risk_desc}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                # Keep results minimal without extra badges/emojis
                 
                 # Clinical interpretation
                 with st.expander("📖 Clinical Interpretation"):
@@ -719,9 +625,9 @@ def main():
         
         # Treatment Rankings
         st.markdown("---")
-        st.subheader("💊 Recommended Treatment Options")
+        st.subheader("Recommended Treatment Options")
         
-        col1, col2, col3 = st.columns([2, 2, 1])
+        col1, col2 = st.columns([2, 1])
         
         with col1:
             rank_organism = st.selectbox(
@@ -733,13 +639,6 @@ def main():
             )
         
         with col2:
-            apply_filtering = st.checkbox(
-                "Apply Biological Filtering",
-                value=True,
-                help="Filter antibiotics based on spectrum of activity (Gram stain, anaerobe status)"
-            )
-        
-        with col3:
             top_n = st.slider(
                 "Show Top N",
                 min_value=5,
@@ -749,7 +648,7 @@ def main():
             )
         
         with st.spinner("Ranking antibiotics..."):
-            rank_df = rank_antibiotics(rank_organism, assets, top_n=top_n, apply_filtering=apply_filtering)
+            rank_df = rank_antibiotics(rank_organism, assets, top_n=top_n, apply_filtering=True)
         
         if isinstance(rank_df, dict) and "error" in rank_df:
             st.warning(rank_df["error"])
@@ -759,30 +658,12 @@ def main():
             display_df["Effectiveness"] = display_df["prob_effective"].apply(lambda x: format_probability(x))
             display_df["Resistance"] = display_df["prob_resistant"].apply(lambda x: format_probability(x))
             
-            # Add risk indicator
-            def get_emoji(prob_res):
-                if prob_res < 0.3:
-                    return "🟢"
-                elif prob_res < 0.5:
-                    return "🟡"
-                elif prob_res < 0.7:
-                    return "🟠"
-                else:
-                    return "🔴"
-            
-            display_df["Risk"] = display_df["prob_resistant"].apply(get_emoji)
-            
             # Rename and reorder columns
-            display_df = display_df[["Risk", "antibiotic", "Effectiveness", "Resistance"]]
-            display_df.columns = ["Risk", "Antibiotic", "Effectiveness", "Resistance"]
+            display_df = display_df[["antibiotic", "Effectiveness", "Resistance"]]
+            display_df.columns = ["Antibiotic", "Effectiveness", "Resistance"]
             display_df.index = range(1, len(display_df) + 1)
             
             st.dataframe(display_df, use_container_width=True)
-            
-            if apply_filtering:
-                st.info("ℹ️ **Biological filtering applied** - Only showing antibiotics appropriate for this organism's Gram stain and spectrum")
-            else:
-                st.warning("⚠️ **No biological filtering** - Showing all antibiotics (some may be inappropriate)")
         else:
             st.warning("No ranking data available")
     
@@ -790,13 +671,7 @@ def main():
     with tab2:
         render_analytics_tab(metadata)
     
-    # Tab 3: Insights
-    with tab3:
-        render_insights_tab()
-    
-    # Tab 4: About
-    with tab4:
-        render_about_tab()
+    # Additional tabs removed for a cleaner layout
 
 
 if __name__ == "__main__":
