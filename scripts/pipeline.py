@@ -56,6 +56,86 @@ DATASET_URLS = {
 }
 
 
+def load_spectrum_rules():
+    """Load biological filtering rules for antibiotics and organisms.
+    
+    Returns dict with spectrum and classification data, or None if files missing.
+    """
+    spectrum_path = Path("data/antibiotic_spectrum.json")
+    organism_path = Path("data/organism_classification.json")
+    
+    try:
+        if not spectrum_path.exists() or not organism_path.exists():
+            return None
+        
+        with open(spectrum_path) as f:
+            spectrum_data = json.load(f)
+        
+        with open(organism_path) as f:
+            organism_data = json.load(f)
+        
+        return {
+            "spectrum": spectrum_data,
+            "organisms": organism_data,
+        }
+    except Exception:
+        return None
+
+
+def filter_by_spectrum(organism_name: str, antibiotic_list: list, spectrum_rules: dict | None) -> list:
+    """Filter antibiotics based on organism type and spectrum of activity.
+    
+    Args:
+        organism_name: Name of organism (e.g., "ESCHERICHIA COLI")
+        antibiotic_list: List of antibiotic names to filter
+        spectrum_rules: Rules dict from load_spectrum_rules() or None
+    
+    Returns:
+        Filtered list of antibiotics appropriate for organism, or original list if filtering unavailable
+    """
+    if not spectrum_rules:
+        return antibiotic_list
+    
+    try:
+        org_upper = str(organism_name).upper().strip()
+        organisms = spectrum_rules.get("organisms", {})
+        spectrum = spectrum_rules.get("spectrum", {})
+        
+        # Determine organism type
+        is_gram_neg = any(org_upper in org_list for org_list in [organisms.get("gram_negative", [])])
+        is_gram_pos = any(org_upper in org_list for org_list in [organisms.get("gram_positive", [])])
+        is_anaerobe = any(org_upper in org_list for org_list in [organisms.get("anaerobe", [])])
+        
+        # Get appropriate antibiotics
+        appropriate = set()
+        
+        # Always include broad-spectrum
+        appropriate.update(abx.upper() for abx in spectrum.get("broad_spectrum", []))
+        
+        if is_gram_neg:
+            appropriate.update(abx.upper() for abx in spectrum.get("gram_negative_active", []))
+        
+        if is_gram_pos:
+            appropriate.update(abx.upper() for abx in spectrum.get("gram_positive_only", []))
+        
+        if is_anaerobe:
+            appropriate.update(abx.upper() for abx in spectrum.get("anaerobe_primary", []))
+        
+        # If organism type unknown, return all (fail-safe)
+        if not (is_gram_neg or is_gram_pos or is_anaerobe):
+            return antibiotic_list
+        
+        # Filter the list
+        filtered = [abx for abx in antibiotic_list if abx.upper() in appropriate]
+        
+        # Return filtered list or original if filtering removed everything
+        return filtered if filtered else antibiotic_list
+        
+    except Exception:
+        # Fail gracefully - return original list
+        return antibiotic_list
+
+
 def ensure_directories():
     """Create required pipeline directories."""
     for path in [PATHS["raw_dir"], PATHS["processed_dir"], PATHS["artifacts_dir"], PATHS["outputs_dir"]]:
@@ -439,8 +519,18 @@ def predict_resistance(organism, antibiotic, assets):
     }
 
 
-def rank_antibiotics(organism, assets, top_n=10):
-    """Rank antibiotics by effectiveness for organism."""
+def rank_antibiotics(organism, assets, top_n=10, apply_filtering=True):
+    """Rank antibiotics by effectiveness for organism.
+    
+    Args:
+        organism: Organism name
+        assets: Dict with model, lookups
+        top_n: Number of top antibiotics to return
+        apply_filtering: Whether to apply biological spectrum filtering
+    
+    Returns:
+        DataFrame with ranked antibiotics or error dict
+    """
     org_lookup = assets["org_lookup"]
     abx_lookup = assets["abx_lookup"]
     model = assets["model"]
@@ -450,9 +540,25 @@ def rank_antibiotics(organism, assets, top_n=10):
         return {"error": f"Organism '{organism}' not found"}
     
     org_code, org_name = org_lookup[org_key]
-    rows = []
     
+    # Load spectrum rules if filtering enabled
+    spectrum_rules = load_spectrum_rules() if apply_filtering else None
+    
+    # Get all antibiotic names
+    all_antibiotics = [abx_name for _, (_, abx_name) in abx_lookup.items()]
+    
+    # Apply biological filtering
+    if apply_filtering and spectrum_rules:
+        filtered_names = filter_by_spectrum(org_name, all_antibiotics, spectrum_rules)
+    else:
+        filtered_names = all_antibiotics
+    
+    rows = []
     for abx_lower, (abx_code, abx_name) in abx_lookup.items():
+        # Skip if filtered out
+        if abx_name not in filtered_names:
+            continue
+            
         X_input = np.array([[org_code, abx_code]], dtype=np.float32)
         dmat = xgb.DMatrix(X_input, feature_names=["organism_code", "antibiotic_code"])
         prob_resistant = float(model.predict(dmat)[0])
