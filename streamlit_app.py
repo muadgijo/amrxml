@@ -192,20 +192,38 @@ def render_disclaimer():
 def render_sidebar():
     """Render sidebar with navigation and info."""
     with st.sidebar:
-        st.image("https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/bacterium.svg", width=80)
-        st.title("AMR-X")
+        st.title("🔬 AMR-X")
         st.caption("Antimicrobial Resistance Predictor")
         
         st.markdown("---")
         st.subheader("ℹ️ About")
-        st.info("""
-        **AMR-X** uses machine learning to predict antimicrobial resistance patterns and recommend effective treatment options.
         
-        - 🧬 **XGBoost Model**
-        - 📊 **1.4M+ Training Samples**
-        - 🎯 **68%+ Accuracy**
-        - ⚡ **Instant Predictions**
-        """)
+        # Load metadata for dynamic stats
+        metadata = load_model_metadata()
+        
+        if metadata:
+            test_metrics = metadata.get("test_metrics", {})
+            n_samples = metadata.get("n_samples", 0)
+            accuracy = test_metrics.get("accuracy", 0) * 100
+            roc_auc = test_metrics.get("roc_auc", 0)
+            
+            st.info(f"""
+            **AMR-X** uses machine learning to predict antimicrobial resistance patterns and recommend effective treatment options.
+            
+            - 🧬 **XGBoost Model**
+            - 📊 **{n_samples:,}+ Training Samples**
+            - 🎯 **{accuracy:.1f}% Accuracy**
+            - ⚡ **Instant Predictions**
+            """)
+        else:
+            st.info("""
+            **AMR-X** uses machine learning to predict antimicrobial resistance patterns and recommend effective treatment options.
+            
+            - 🧬 **XGBoost Model**
+            - 📊 **Machine Learning Powered**
+            - 🎯 **Research Grade**
+            - ⚡ **Instant Predictions**
+            """)
         
         st.markdown("---")
         st.subheader("🔗 Resources")

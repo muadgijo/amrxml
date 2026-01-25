@@ -102,9 +102,9 @@ def filter_by_spectrum(organism_name: str, antibiotic_list: list, spectrum_rules
         spectrum = spectrum_rules.get("spectrum", {})
         
         # Determine organism type
-        is_gram_neg = any(org_upper in org_list for org_list in [organisms.get("gram_negative", [])])
-        is_gram_pos = any(org_upper in org_list for org_list in [organisms.get("gram_positive", [])])
-        is_anaerobe = any(org_upper in org_list for org_list in [organisms.get("anaerobe", [])])
+        is_gram_neg = org_upper in organisms.get("gram_negative", [])
+        is_gram_pos = org_upper in organisms.get("gram_positive", [])
+        is_anaerobe = org_upper in organisms.get("anaerobe", [])
         
         # Get appropriate antibiotics
         appropriate = set()
