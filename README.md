@@ -23,6 +23,36 @@ Select an organism and antibiotic to predict resistance probability and see reco
 
 ---
 
+##  Model Scope & Intended Use
+
+**What This Model Does:**
+- Estimates global resistance patterns for organism-antibiotic pairs
+- Ranks treatment options based on resistance probability
+- Provides awareness and education about antimicrobial resistance trends
+- Supports surveillance and decision-making in data-limited regions
+
+**What This Model Doesn't Do:**
+- Make patient-specific clinical diagnoses
+- Predict regional resistance rates or local patterns
+- Replace culture and sensitivity testing
+- Forecast resistance trends over time
+
+**Important Context:**
+This model reflects global resistance patterns aggregated across clinical datasets. It's designed as a comparative tool and awareness resource, especially useful where local resistance data isn't available. Always contextualize results with your local antibiogram and clinical judgment.
+
+**When to Use:**
+- Educational purposes about AMR
+- Awareness and surveillance support
+- Treatment ranking in resource-limited settings
+- Decision support when local data isn't available
+
+**When NOT to Use:**
+- As a sole basis for clinical decisions
+- Without confirming with culture testing
+- For region-specific resistance predictions
+
+---
+
 ##  How It Works
 
 1. **Input**: Select organism (e.g., *E. coli*) and antibiotic (e.g., Ciprofloxacin)
