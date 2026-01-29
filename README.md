@@ -62,8 +62,36 @@ This model reflects global resistance patterns aggregated across clinical datase
 **Model Details:**
 - Algorithm: XGBoost (Gradient Boosting)
 - Features: Organism code, Antibiotic code (encoded)
-- Training Data: ~[insert number] clinical observations
-- Performance: [insert accuracy/AUC if you have it]
+- Training Data: ~1.4M clinical observations
+- Performance: 68.2% accuracy, 0.81 ROC-AUC, 82% sensitivity
+
+---
+
+##  What This Model Does (and Doesn't)
+
+**AMR-X generates a baseline resistance risk signal** based on global clinical data patterns. It's designed for surveillance, awareness, and comparative analysis in data-scarce regions.
+
+### What It Learns
+- Structural resistance relationships (organism-antibiotic mechanisms)
+- Comparative risk across antibiotic classes
+- Treatment ranking for specific organisms
+- Organism vulnerability profiles
+
+### What It Doesn't Predict
+- Regional resistance rates (e.g., "% E. coli resistance in Kerala")
+- Temporal resistance evolution or future trends
+- Patient-specific clinical outcomes
+- Healthcare system-specific patterns
+
+### Why It Matters for LMICs
+Many low-resource regions lack:
+- Standardized AMR surveillance systems
+- Open resistance datasets
+- Resources for comprehensive culture testing
+
+AMR-X fills this gap by providing a **starting point** for treatment awareness and a **comparative framework** to be validated against local data.
+
+**Key Principle:** Structural resistance patterns often transfer across regions; absolute percentages do not. This model provides the former.
 
 ---
 
@@ -125,11 +153,14 @@ amrxml/
 
 ##  Model Performance
 
-The model is evaluated on held-out test data. Key metrics:
+The model is evaluated on held-out test data:
 
-- **Accuracy**: [add your metric]
-- **ROC-AUC**: [add your metric]
-- **Precision/Recall**: See `outputs/` for plots
+- **Accuracy**: 68.2%
+- **ROC-AUC**: 0.81
+- **Sensitivity**: 82.0% (catches resistant cases)
+- **Specificity**: 65.5% (correctly identifies susceptible cases)
+
+The 68% accuracy reflects the real-world difficulty of AMR prediction. High sensitivity (82%) means the model prioritizes safety by being conservative — it errs on the side of warning about resistance rather than missing it.
 
 ---
 
@@ -162,6 +193,32 @@ print(result)
 #  'prediction': 'Resistant', 
 #  'probability': 0.8234}
 ```
+
+---
+
+##  Future Work & Limitations
+
+### Current Constraints
+1. **Regional Calibration**: Model trained on US-centric data
+   - Captures global baseline patterns
+   - Requires local calibration for region-specific prevalence
+   
+2. **Temporal Dynamics**: Dataset lacks time-indexed labels
+   - Cannot model resistance evolution over time
+   - Temporal awareness possible at system level (query pattern analysis)
+
+3. **Feature Sparsity**: Binary organism–antibiotic classification
+   - No patient demographics, sample source, or geographic stratification
+
+### Planned Enhancements
+- [ ] Local calibration with ICMR AMR surveillance data
+- [ ] Ensemble modeling combining US baseline + WHO GLASS global datasets
+- [ ] Temporal retraining pipeline when timestamped data becomes available
+- [ ] Regional stratification for resistance ecology differences
+- [ ] Uncertainty quantification using prediction intervals
+
+### Contributing Data
+If you have access to regional AMR datasets (especially India, Africa, Southeast Asia), please consider contributing to improve local calibration. Contact [@muadgijo](https://github.com/muadgijo).
 
 ---
 
